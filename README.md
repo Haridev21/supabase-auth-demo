@@ -2,6 +2,10 @@
 
 This is a minimal static site to test Supabase email/password authentication using `@supabase/supabase-js` v2 (ESM via CDN). It includes pages for Sign Up and Log In and shows how to pass user metadata.
 
+### Live demo
+
+- [https://haridev21.github.io/supabase-auth-demo/](https://haridev21.github.io/supabase-auth-demo/)
+
 ### Project structure
 
 ```
