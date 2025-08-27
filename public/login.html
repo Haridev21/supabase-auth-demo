@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Log In - Supabase Test</title>
+	<style>
+		body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #0b1020; color: #e6e8f0; }
+		.container { max-width: 440px; margin: 40px auto; padding: 24px; background: #121931; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+		h1 { margin: 0 0 8px; font-size: 24px; }
+		p.help { margin: 0 0 20px; color: #b9bfd3; font-size: 14px; }
+		label { display: block; margin: 12px 0 6px; color: #cfd6ea; font-weight: 600; font-size: 13px; }
+		input { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #2a335a; background: #0f1530; color: #e6e8f0; }
+		input:focus { outline: none; border-color: #627cff; box-shadow: 0 0 0 3px rgba(98,124,255,.25); }
+		button { width: 100%; margin-top: 18px; padding: 12px 14px; border: none; border-radius: 8px; background: #627cff; color: white; font-weight: 700; cursor: pointer; }
+		button:disabled { opacity: .6; cursor: not-allowed; }
+		.note { margin-top: 12px; font-size: 13px; color: #aab2cf; }
+		.msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+		.msg.error { background: #3a1b24; color: #ffb8c6; border: 1px solid #5a2131; }
+		.msg.success { background: #143022; color: #baf3d0; border: 1px solid #1f5a3e; }
+		.link { display: inline-block; margin-top: 10px; color: #9db0ff; text-decoration: none; }
+		.link:hover { text-decoration: underline; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Log in</h1>
+		<p class="help">Enter your email and password to sign in.</p>
+		<form id="login-form">
+			<label for="email">Email</label>
+			<input id="email" name="email" type="email" required placeholder="you@example.com" />
+
+			<label for="password">Password</label>
+			<input id="password" name="password" type="password" required minlength="6" placeholder="••••••••" />
+
+			<button id="submit" type="submit">Log in</button>
+		</form>
+		<div id="message" class="msg" style="display:none"></div>
+		<a class="link" href="./signup.html">Need an account? Sign up</a>
+	</div>
+
+	<script type="module">
+		import { supabase } from './supabaseClient.js'
+
+		const form = document.getElementById('login-form')
+		const btn = document.getElementById('submit')
+		const message = document.getElementById('message')
+
+		function showMessage(text, type = 'success') {
+			message.textContent = text
+			message.className = `msg ${type}`
+			message.style.display = 'block'
+		}
+
+		form.addEventListener('submit', async (e) => {
+			e.preventDefault()
+			message.style.display = 'none'
+			btn.disabled = true
+			const formData = new FormData(form)
+			const email = formData.get('email')?.toString().trim()
+			const password = formData.get('password')?.toString()
+
+			const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+			if (error) {
+				showMessage(error.message, 'error')
+				btn.disabled = false
+				return
+			}
+
+			if (data.session) {
+				showMessage('Logged in successfully.')
+				// Example: read profile metadata
+				const user = data.user
+				console.log('User metadata:', user?.user_metadata)
+			} else {
+				showMessage('Login succeeded, but no active session found.')
+			}
+			btn.disabled = false
+		})
+	</script>
+</body>
+</html>
+
+

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Sign Up - Supabase Test</title>
+	<style>
+		body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #0b1020; color: #e6e8f0; }
+		.container { max-width: 440px; margin: 40px auto; padding: 24px; background: #121931; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+		h1 { margin: 0 0 8px; font-size: 24px; }
+		p.help { margin: 0 0 20px; color: #b9bfd3; font-size: 14px; }
+		label { display: block; margin: 12px 0 6px; color: #cfd6ea; font-weight: 600; font-size: 13px; }
+		input { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #2a335a; background: #0f1530; color: #e6e8f0; }
+		input:focus { outline: none; border-color: #627cff; box-shadow: 0 0 0 3px rgba(98,124,255,.25); }
+		button { width: 100%; margin-top: 18px; padding: 12px 14px; border: none; border-radius: 8px; background: #627cff; color: white; font-weight: 700; cursor: pointer; }
+		button:disabled { opacity: .6; cursor: not-allowed; }
+		.note { margin-top: 12px; font-size: 13px; color: #aab2cf; }
+		.msg { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+		.msg.error { background: #3a1b24; color: #ffb8c6; border: 1px solid #5a2131; }
+		.msg.success { background: #143022; color: #baf3d0; border: 1px solid #1f5a3e; }
+		.link { display: inline-block; margin-top: 10px; color: #9db0ff; text-decoration: none; }
+		.link:hover { text-decoration: underline; }
+
+		/* Simple modal */
+		.modal-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.5); padding: 16px; z-index: 1000; }
+		.modal { width: 100%; max-width: 440px; background: #121931; border: 1px solid #2a335a; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding: 20px; }
+		.modal h2 { margin: 0 0 8px; font-size: 18px; }
+		.modal p { margin: 0 0 12px; color: #b9bfd3; }
+		.modal .email { color: #e6e8f0; font-weight: 700; }
+		.modal .actions { display: flex; gap: 10px; margin-top: 12px; }
+		.modal .button { flex: 1; display: inline-block; text-align: center; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: white; background: #627cff; cursor: pointer; }
+		.modal .button.secondary { background: #2a335a; }
+	</style>
+</head>
+<body>
+	<div class="container">
+		<h1>Create account</h1>
+		<p class="help">Enter details to create a test account in Supabase.</p>
+		<form id="signup-form">
+			<label for="email">Email</label>
+			<input id="email" name="email" type="email" required placeholder="you@example.com" />
+
+			<label for="password">Password</label>
+			<input id="password" name="password" type="password" required minlength="6" placeholder="••••••••" />
+
+			<label for="full_name">Full name</label>
+			<input id="full_name" name="full_name" type="text" placeholder="Ada Lovelace" />
+
+			<label for="phone">Phone</label>
+			<input id="phone" name="phone" type="tel" placeholder="+1 555 123 4567" />
+
+			<button id="submit" type="submit">Create account</button>
+		</form>
+		<div id="message" class="msg" style="display:none"></div>
+		<a class="link" href="./login.html">Already have an account? Log in</a>
+	</div>
+
+	<!-- Modal: ask user to confirm email -->
+	<div id="confirm-modal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+		<div class="modal">
+			<h2>Confirm your email</h2>
+			<p>We've sent a confirmation link to <span id="confirm-email" class="email"></span>. Please check your inbox and click the link to activate your account.</p>
+			<div class="actions">
+				<button id="close-modal" class="button secondary" type="button">Close</button>
+				<a id="open-email" class="button" href="https://mail.google.com/" target="_blank" rel="noopener">Open email</a>
+			</div>
+		</div>
+	</div>
+
+	<script type="module">
+		import { supabase } from './supabaseClient.js'
+
+		const form = document.getElementById('signup-form')
+		const btn = document.getElementById('submit')
+		const message = document.getElementById('message')
+
+		function showMessage(text, type = 'success') {
+			message.textContent = text
+			message.className = `msg ${type}`
+			message.style.display = 'block'
+		}
+
+		function openModal(email) {
+			document.getElementById('confirm-email').textContent = email || ''
+			document.getElementById('confirm-modal').style.display = 'flex'
+		}
+
+		function closeModal() {
+			document.getElementById('confirm-modal').style.display = 'none'
+		}
+
+		document.getElementById('close-modal').addEventListener('click', closeModal)
+
+		form.addEventListener('submit', async (e) => {
+			e.preventDefault()
+			message.style.display = 'none'
+			btn.disabled = true
+			const formData = new FormData(form)
+			const email = formData.get('email')?.toString().trim()
+			const password = formData.get('password')?.toString()
+			const full_name = formData.get('full_name')?.toString().trim() || null
+			const phone = formData.get('phone')?.toString().trim() || null
+
+			const { data, error } = await supabase.auth.signUp({
+				email,
+				password,
+				options: {
+					data: { full_name, phone }
+				}
+			})
+
+			if (error) {
+				showMessage(error.message, 'error')
+				btn.disabled = false
+				return
+			}
+
+			if (data.user) {
+				showMessage('Signup successful. Check your email to confirm your account.')
+				openModal(email)
+			} else {
+				showMessage('If email confirmation is enabled, please check your inbox.')
+			}
+			btn.disabled = false
+		})
+	</script>
+</body>
+</html>
+
+
